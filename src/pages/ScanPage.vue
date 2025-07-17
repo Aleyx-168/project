@@ -1,57 +1,89 @@
 <template>
-  <div class="index-page">
-    <h1>仓库管理系统</h1>
-    <div class="button-group">
-      <button class="action-btn" @click="goScan('in')">入库</button>
-      <button class="action-btn" @click="goScan('out')">出库</button>
-      <button class="action-btn" @click="goQuery">查询</button>
+  <div class="q-pa-md column items-center justify-center">
+    <div class="scanner-box">
+      <video ref="videoRef" class="video" autoplay playsinline></video>
+      <div class="scan-line" />
     </div>
+    <p class="q-mt-md text-h6 text-primary">{{ scannedText }}</p>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-const router = useRouter()
+import { ref, onMounted, onUnmounted } from 'vue'
+import { BrowserMultiFormatReader } from '@zxing/browser'
 
-function goScan(mode) {
-  router.push({ path: '/scan', query: { mode } })
+const videoRef = ref(null)
+const scannedText = ref('')
+let codeReader = null
+let animationFrame = null
+
+function playBeep() {
+  const beep = new Audio('/sounds/beep.mp3')
+  beep.play()
 }
 
-function goQuery() {
-  router.push('/query')
-}
+onMounted(async () => {
+  codeReader = new BrowserMultiFormatReader()
+
+  try {
+    const devices = await BrowserMultiFormatReader.listVideoInputDevices()
+    if (devices.length === 0) {
+      alert('找不到摄像头')
+      return
+    }
+
+    await codeReader.decodeFromVideoDevice(devices[0].deviceId, videoRef.value, (result) => {
+      if (result) {
+        const text = result.getText()
+        if (text !== scannedText.value) {
+          scannedText.value = text
+          playBeep()
+        }
+      }
+    })
+  } catch (e) {
+    console.error('摄像头启动失败:', e)
+    alert('摄像头无法打开，请检查权限或设备')
+  }
+
+  const line = document.querySelector('.scan-line')
+  let pos = 0
+  let dir = 2
+  function moveLine() {
+    pos += dir
+    if (pos >= 200 || pos <= 0) dir *= -1
+    if (line) line.style.top = `${pos}px`
+    animationFrame = requestAnimationFrame(moveLine)
+  }
+  moveLine()
+})
+
+onUnmounted(() => {
+  if (codeReader) codeReader.reset()
+  cancelAnimationFrame(animationFrame)
+})
 </script>
 
 <style scoped>
-.index-page {
-  text-align: center;
-  padding-top: 80px;
+.scanner-box {
+  position: relative;
+  width: 300px;
+  height: 200px;
+  border: 3px solid #1976d2;
+  border-radius: 8px;
+  overflow: hidden;
 }
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-width: 250px;
-  margin: 0 auto;
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-
-.action-btn {
-  font-size: 18px;
-  padding: 15px 20px;
-  border-radius: 10px;
-  border: none;
-  background-color: #027be3;
-  color: white;
-  cursor: pointer;
-  transition:
-    transform 0.1s,
-    box-shadow 0.1s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-}
-
-.action-btn:active {
-  transform: scale(0.96);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: red;
+  z-index: 10;
 }
 </style>
