@@ -1,9 +1,8 @@
 <template>
   <q-page class="q-pa-md">
-    <h5>扫码出库页面</h5>
+    <h4>批量出库页面</h4>
+    <!-- 可添加扫码或列表逻辑 -->
   </q-page>
 </template>
 
-<script setup>
-// 你可以写扫码逻辑等
-</script>
+<script setup></script>

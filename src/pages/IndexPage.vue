@@ -1,54 +1,57 @@
 <template>
-  <div class="q-pa-md">
-    <h2>扫码管理</h2>
-
-    <div class="q-gutter-md">
-      <q-btn label="入库扫码" color="primary" @click="startScan('in')" />
-      <q-btn label="出库扫码" color="negative" @click="startScan('out')" />
-      <q-btn label="查询扫码" color="secondary" @click="startScan('query')" />
-    </div>
-
-    <div v-if="scanning" class="q-mt-md">
-      <video ref="video" style="width: 100%; max-width: 400px" />
+  <div class="index-page">
+    <h1>仓库管理系统</h1>
+    <div class="button-group">
+      <button class="action-btn" @click="goScan('in')">入库</button>
+      <button class="action-btn" @click="goScan('out')">出库</button>
+      <button class="action-btn" @click="goQuery">查询</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount } from 'vue'
-import { BrowserMultiFormatReader } from '@zxing/browser'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
-const video = ref(null)
-const scanning = ref(false)
-const codeReader = new BrowserMultiFormatReader()
-
-function startScan(type) {
-  scanning.value = true
-
-  codeReader.decodeFromVideoDevice(null, video.value, (result) => {
-    if (result) {
-      scanning.value = false
-      codeReader.reset()
-
-      const code = result.getText()
-      if (type === 'in') {
-        alert('✅ 入库成功：' + code)
-      } else if (type === 'out') {
-        alert('📦 出库成功：' + code)
-      } else {
-        alert('🔍 查询结果：' + code)
-      }
-    }
-  })
+function goScan(mode) {
+  router.push({ path: '/scan', query: { mode } })
 }
 
-onBeforeUnmount(() => {
-  codeReader.reset()
-})
+function goQuery() {
+  router.push('/query')
+}
 </script>
 
 <style scoped>
-h2 {
-  margin-bottom: 20px;
+.index-page {
+  text-align: center;
+  padding-top: 80px;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 250px;
+  margin: 0 auto;
+}
+
+.action-btn {
+  font-size: 18px;
+  padding: 15px 20px;
+  border-radius: 10px;
+  border: none;
+  background-color: #027be3;
+  color: white;
+  cursor: pointer;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 </style>
