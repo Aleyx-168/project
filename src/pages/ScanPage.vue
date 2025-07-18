@@ -1,87 +1,70 @@
 <template>
-  <div class="q-pa-md">
-    <div style="position: relative; width: 100%; max-width: 400px; margin: auto">
-      <video ref="videoRef" style="width: 100%; border: 2px solid #ccc"></video>
-
-      <!-- 扫描线 -->
-      <div
-        style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: red;
-          animation: scan 2s infinite;
-        "
-      ></div>
-    </div>
-
-    <div class="q-mt-md text-center">
-      当前模式：{{ scanMode === 'in' ? '入库' : scanMode === 'out' ? '出库' : '未知' }}
-    </div>
-
-    <q-btn label="返回首页" color="primary" class="q-mt-md" to="/" />
+  <div class="q-pa-md column items-center">
+    <video ref="video" style="width: 100%; max-width: 400px" autoplay muted></video>
+    <div class="scan-line" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 
-const route = useRoute()
-const scanMode = route.query.mode || 'unknown'
+// 视频 DOM 引用
+const video = ref(null)
 
+// 声音（放在 public/sounds/beep.mp3）
+const beep = new Audio('/sounds/beep.mp3')
+
+// 创建扫码器
 const codeReader = new BrowserMultiFormatReader()
-const videoRef = ref(null)
-let selectedDeviceId = null
 
 onMounted(async () => {
-  try {
-    const devices = await BrowserMultiFormatReader.listVideoInputDevices()
+  const devices = await BrowserMultiFormatReader.listVideoInputDevices()
 
-    for (const device of devices) {
-      const label = device.label.toLowerCase()
-      if (label.includes('back') || label.includes('environment')) {
-        selectedDeviceId = device.deviceId
-        break
-      }
-    }
+  // 优先使用后置摄像头（有些设备没有 label，要兜底）
+  const backCam =
+    devices.find(
+      (device) =>
+        device.label.toLowerCase().includes('back') ||
+        device.label.toLowerCase().includes('environment'),
+    ) || devices[0]
 
-    if (!selectedDeviceId && devices.length > 0) {
-      selectedDeviceId = devices[0].deviceId
-    }
-
-    await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.value, (result) => {
-      if (result) {
-        playBeep()
-        const code = result.getText()
-        alert(`扫码成功：${code}\n操作类型：${scanMode === 'in' ? '入库' : '出库'}`)
-      }
-    })
-  } catch (err) {
-    console.error('扫码失败:', err)
+  if (backCam) {
+    codeReader.decodeFromVideoDevice(
+      { deviceId: backCam.deviceId, facingMode: 'environment' },
+      video.value,
+      (result) => {
+        if (result) {
+          beep.play()
+          alert('扫码成功：' + result.getText())
+          codeReader.reset()
+        }
+      },
+    )
   }
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   codeReader.reset()
 })
-
-function playBeep() {
-  const audio = new Audio('/sounds/beep.mp3')
-  audio.play().catch(() => {})
-}
 </script>
 
-<style>
-@keyframes scan {
+<style scoped>
+.scan-line {
+  width: 100%;
+  height: 2px;
+  background-color: red;
+  animation: moveLine 2s infinite;
+  position: relative;
+  top: -200px;
+}
+
+@keyframes moveLine {
   0% {
-    top: 0%;
+    top: 0;
   }
   100% {
-    top: 100%;
+    top: 200px;
   }
 }
 </style>
