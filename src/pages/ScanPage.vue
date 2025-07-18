@@ -1,48 +1,43 @@
+<!-- src/pages/ScanPage.vue -->
 <template>
-  <div class="q-pa-md column items-center">
-    <video ref="video" style="width: 100%; max-width: 400px" autoplay muted playsinline></video>
-    <div class="scan-line" />
-  </div>
+  <q-page class="column items-center justify-center q-pa-md">
+    <div class="video-container">
+      <video ref="videoRef" autoplay muted playsinline style="width: 100%; max-width: 500px" />
+      <div class="scanline"></div>
+    </div>
+  </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, ref, onBeforeUnmount } from 'vue'
 import { BrowserMultiFormatReader } from '@zxing/browser'
+import { useRoute } from 'vue-router'
 
-const video = ref(null)
+const videoRef = ref(null)
 const codeReader = new BrowserMultiFormatReader()
-const beep = new Audio('/sounds/beep.mp3') // 确保你放在 public/sounds/beep.mp3
+const route = useRoute()
+let selectedDeviceId = null
 
 onMounted(async () => {
   try {
     const devices = await BrowserMultiFormatReader.listVideoInputDevices()
+    const rearCamera = devices.find((device) => /back|rear/i.test(device.label)) || devices[0]
+    selectedDeviceId = rearCamera.deviceId
 
-    const backCam =
-      devices.find(
-        (device) =>
-          device.label.toLowerCase().includes('back') ||
-          device.label.toLowerCase().includes('environment'),
-      ) || devices[0]
-
-    if (!backCam) {
-      alert('未找到摄像头设备')
-      return
-    }
-
-    await codeReader.decodeFromVideoDevice(
-      { deviceId: backCam.deviceId },
-      video.value,
-      (result) => {
+    codeReader.decodeFromVideoDevice(
+      selectedDeviceId,
+      videoRef.value,
+      (result, error, controls) => {
         if (result) {
+          const beep = new Audio('/sounds/beep.mp3')
           beep.play()
-          alert('扫码成功：' + result.getText())
-          codeReader.reset()
+          alert(`扫码成功：${result.getText()}`)
+          controls.stop()
         }
       },
     )
   } catch (e) {
-    alert('摄像头打开失败，请检查权限或使用 HTTPS')
-    console.error(e)
+    alert('摄像头无法启动：' + e.message)
   }
 })
 
@@ -52,21 +47,27 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.scan-line {
-  width: 100%;
-  height: 2px;
-  background-color: red;
-  animation: moveLine 2s infinite;
+.video-container {
   position: relative;
-  top: -200px;
 }
-
-@keyframes moveLine {
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: red;
+  animation: scan 2s infinite;
+}
+@keyframes scan {
   0% {
     top: 0;
   }
+  50% {
+    top: 95%;
+  }
   100% {
-    top: 200px;
+    top: 0;
   }
 }
 </style>
