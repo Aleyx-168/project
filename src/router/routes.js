@@ -1,5 +1,3 @@
-// src/router/routes.js
-
 const routes = [
   {
     path: '/',
@@ -10,11 +8,6 @@ const routes = [
     path: '/scan',
     name: 'ScanPage',
     component: () => import('src/pages/ScanPage.vue'),
-  },
-  {
-    path: '/outrecords',
-    name: 'OutRecordsPage',
-    component: () => import('src/pages/OutRecordsPage.vue'),
   },
 ]
 
