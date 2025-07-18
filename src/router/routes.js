@@ -1,4 +1,5 @@
-// 定义路由数组
+// src/router/routes.js
+
 const routes = [
   {
     path: '/',

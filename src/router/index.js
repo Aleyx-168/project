@@ -1,5 +1,7 @@
+// src/router/index.js
+
 import { createRouter, createWebHistory } from 'vue-router'
-import routes from './routes.js' // 注意是 './routes.js'，不是 './router.js'
+import routes from './routes.js' // 注意这里一定是 './routes.js'
 
 const router = createRouter({
   history: createWebHistory(),
