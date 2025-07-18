@@ -1,6 +1,6 @@
 <template>
   <div class="q-pa-md column items-center">
-    <video ref="video" style="width: 100%; max-width: 400px" autoplay muted></video>
+    <video ref="video" style="width: 100%; max-width: 400px" autoplay muted playsinline></video>
     <div class="scan-line" />
   </div>
 </template>
@@ -9,29 +9,28 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 
-// 视频 DOM 引用
 const video = ref(null)
-
-// 声音（放在 public/sounds/beep.mp3）
-const beep = new Audio('/sounds/beep.mp3')
-
-// 创建扫码器
 const codeReader = new BrowserMultiFormatReader()
+const beep = new Audio('/sounds/beep.mp3') // 确保你放在 public/sounds/beep.mp3
 
 onMounted(async () => {
-  const devices = await BrowserMultiFormatReader.listVideoInputDevices()
+  try {
+    const devices = await BrowserMultiFormatReader.listVideoInputDevices()
 
-  // 优先使用后置摄像头（有些设备没有 label，要兜底）
-  const backCam =
-    devices.find(
-      (device) =>
-        device.label.toLowerCase().includes('back') ||
-        device.label.toLowerCase().includes('environment'),
-    ) || devices[0]
+    const backCam =
+      devices.find(
+        (device) =>
+          device.label.toLowerCase().includes('back') ||
+          device.label.toLowerCase().includes('environment'),
+      ) || devices[0]
 
-  if (backCam) {
-    codeReader.decodeFromVideoDevice(
-      { deviceId: backCam.deviceId, facingMode: 'environment' },
+    if (!backCam) {
+      alert('未找到摄像头设备')
+      return
+    }
+
+    await codeReader.decodeFromVideoDevice(
+      { deviceId: backCam.deviceId },
       video.value,
       (result) => {
         if (result) {
@@ -41,6 +40,9 @@ onMounted(async () => {
         }
       },
     )
+  } catch (e) {
+    alert('摄像头打开失败，请检查权限或使用 HTTPS')
+    console.error(e)
   }
 })
 

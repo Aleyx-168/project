@@ -3,9 +3,8 @@ const routes = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') },
-      { path: 'scan', component: () => import('pages/ScanPage.vue') },
-      { path: 'records', component: () => import('pages/RecordsPage.vue') }, // 可留空
+      { path: '', name: 'index', component: () => import('pages/IndexPage.vue') },
+      { path: 'scan', name: 'scan', component: () => import('pages/ScanPage.vue') },
     ],
   },
   {

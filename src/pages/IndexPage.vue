@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-md">
+  <div class="q-pa-md column items-center">
     <div class="text-h5 q-mb-md">仓库管理系统</div>
 
     <q-btn label="单个入库" color="primary" class="q-mb-sm full-width" @click="goScan('single')" />

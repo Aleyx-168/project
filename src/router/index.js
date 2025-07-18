@@ -1,12 +1,3 @@
-const routes = [
-  {
-    path: '/',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '', name: 'index', component: () => import('pages/IndexPage.vue') },
-      { path: 'scan', name: 'scan', component: () => import('pages/ScanPage.vue') },
-    ],
-  },
-]
+import routes from './router.js'
 
 export default routes
