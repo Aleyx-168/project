@@ -1,15 +1,19 @@
+// 定义路由数组
 const routes = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '', name: 'index', component: () => import('pages/IndexPage.vue') },
-      { path: 'scan', name: 'scan', component: () => import('pages/ScanPage.vue') },
-    ],
+    name: 'IndexPage',
+    component: () => import('src/pages/IndexPage.vue'),
   },
   {
-    path: '/:catchAll(.*)*',
-    component: () => import('pages/ErrorNotFound.vue'),
+    path: '/scan',
+    name: 'ScanPage',
+    component: () => import('src/pages/ScanPage.vue'),
+  },
+  {
+    path: '/outrecords',
+    name: 'OutRecordsPage',
+    component: () => import('src/pages/OutRecordsPage.vue'),
   },
 ]
 
