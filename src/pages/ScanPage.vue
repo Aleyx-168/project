@@ -1,89 +1,87 @@
 <template>
-  <div class="q-pa-md column items-center justify-center">
-    <div class="scanner-box">
-      <video ref="videoRef" class="video" autoplay playsinline></video>
-      <div class="scan-line" />
+  <div class="q-pa-md">
+    <div style="position: relative; width: 100%; max-width: 400px; margin: auto">
+      <video ref="videoRef" style="width: 100%; border: 2px solid #ccc"></video>
+
+      <!-- 扫描线 -->
+      <div
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: red;
+          animation: scan 2s infinite;
+        "
+      ></div>
     </div>
-    <p class="q-mt-md text-h6 text-primary">{{ scannedText }}</p>
+
+    <div class="q-mt-md text-center">
+      当前模式：{{ scanMode === 'in' ? '入库' : scanMode === 'out' ? '出库' : '未知' }}
+    </div>
+
+    <q-btn label="返回首页" color="primary" class="q-mt-md" to="/" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 
-const videoRef = ref(null)
-const scannedText = ref('')
-let codeReader = null
-let animationFrame = null
+const route = useRoute()
+const scanMode = route.query.mode || 'unknown'
 
-function playBeep() {
-  const beep = new Audio('/sounds/beep.mp3')
-  beep.play()
-}
+const codeReader = new BrowserMultiFormatReader()
+const videoRef = ref(null)
+let selectedDeviceId = null
 
 onMounted(async () => {
-  codeReader = new BrowserMultiFormatReader()
-
   try {
     const devices = await BrowserMultiFormatReader.listVideoInputDevices()
-    if (devices.length === 0) {
-      alert('找不到摄像头')
-      return
+
+    for (const device of devices) {
+      const label = device.label.toLowerCase()
+      if (label.includes('back') || label.includes('environment')) {
+        selectedDeviceId = device.deviceId
+        break
+      }
     }
 
-    await codeReader.decodeFromVideoDevice(devices[0].deviceId, videoRef.value, (result) => {
+    if (!selectedDeviceId && devices.length > 0) {
+      selectedDeviceId = devices[0].deviceId
+    }
+
+    await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.value, (result) => {
       if (result) {
-        const text = result.getText()
-        if (text !== scannedText.value) {
-          scannedText.value = text
-          playBeep()
-        }
+        playBeep()
+        const code = result.getText()
+        alert(`扫码成功：${code}\n操作类型：${scanMode === 'in' ? '入库' : '出库'}`)
       }
     })
-  } catch (e) {
-    console.error('摄像头启动失败:', e)
-    alert('摄像头无法打开，请检查权限或设备')
+  } catch (err) {
+    console.error('扫码失败:', err)
   }
-
-  const line = document.querySelector('.scan-line')
-  let pos = 0
-  let dir = 2
-  function moveLine() {
-    pos += dir
-    if (pos >= 200 || pos <= 0) dir *= -1
-    if (line) line.style.top = `${pos}px`
-    animationFrame = requestAnimationFrame(moveLine)
-  }
-  moveLine()
 })
 
 onUnmounted(() => {
-  if (codeReader) codeReader.reset()
-  cancelAnimationFrame(animationFrame)
+  codeReader.reset()
 })
+
+function playBeep() {
+  const audio = new Audio('/sounds/beep.mp3')
+  audio.play().catch(() => {})
+}
 </script>
 
-<style scoped>
-.scanner-box {
-  position: relative;
-  width: 300px;
-  height: 200px;
-  border: 3px solid #1976d2;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.scan-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: red;
-  z-index: 10;
+<style>
+@keyframes scan {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
 }
 </style>
