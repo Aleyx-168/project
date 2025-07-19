@@ -1,24 +1,26 @@
-// src/router/routes.js
-
 const routes = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'), // 主布局
+    component: () => import('layouts/MainLayout.vue'),
     children: [
+      // 首页，九宫格按钮
       {
         path: '',
-        name: 'home',
-        component: () => import('pages/IndexPage.vue'), // 首页
+        name: 'index',
+        component: () => import('pages/IndexPage.vue'),
       },
+
+      // 扫码页面：接受参数 mode（single/bulk/out）
       {
-        path: '/scan/:mode',
+        path: 'scan/:mode',
         name: 'scan',
-        component: () => import('pages/ScanPage.vue'), // 扫码页面（入库/出库）
+        component: () => import('pages/ScanPage.vue'),
+        props: true, // ✅ 启用 props 传参（可选）
       },
     ],
   },
 
-  // 捕捉所有未匹配路径的404页面
+  // 404 页面（如果找不到页面）
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),

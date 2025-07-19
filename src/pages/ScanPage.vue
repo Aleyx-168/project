@@ -1,73 +1,90 @@
-<!-- src/pages/ScanPage.vue -->
 <template>
-  <q-page class="column items-center justify-center q-pa-md">
-    <div class="video-container">
-      <video ref="videoRef" autoplay muted playsinline style="width: 100%; max-width: 500px" />
-      <div class="scanline"></div>
+  <q-page class="q-pa-none column items-center justify-center">
+    <div class="video-wrapper">
+      <video ref="videoRef" autoplay muted playsinline></video>
+      <div class="scan-line" />
     </div>
+    <div class="text-h6 q-mt-md">当前模式：{{ modeLabel }}</div>
   </q-page>
 </template>
 
 <script setup>
-import { onMounted, ref, onBeforeUnmount } from 'vue'
-import { BrowserMultiFormatReader } from '@zxing/browser'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
+import { BrowserMultiFormatReader } from '@zxing/browser'
+
+const route = useRoute()
+const mode = route.params.mode
+
+const modeLabel =
+  {
+    single: '入库',
+    bulk: '大量入库',
+    out: '出库',
+  }[mode] || '未知模式'
 
 const videoRef = ref(null)
-const codeReader = new BrowserMultiFormatReader()
-const route = useRoute()
-let selectedDeviceId = null
+let codeReader = null
 
-onMounted(async () => {
-  try {
-    const devices = await BrowserMultiFormatReader.listVideoInputDevices()
-    const rearCamera = devices.find((device) => /back|rear/i.test(device.label)) || devices[0]
-    selectedDeviceId = rearCamera.deviceId
+onMounted(() => {
+  codeReader = new BrowserMultiFormatReader()
 
-    codeReader.decodeFromVideoDevice(
-      selectedDeviceId,
-      videoRef.value,
-      (result, error, controls) => {
-        if (result) {
-          const beep = new Audio('/sounds/beep.mp3')
-          beep.play()
-          alert(`扫码成功：${result.getText()}`)
-          controls.stop()
-        }
-      },
-    )
-  } catch (e) {
-    alert('摄像头无法启动：' + e.message)
-  }
+  codeReader.decodeFromVideoDevice(null, videoRef.value, (result) => {
+    if (result) {
+      const code = result.getText()
+      console.log('扫码成功：', code)
+
+      playBeep()
+      // TODO: 可根据 mode 做入库/出库操作
+    }
+  })
 })
 
 onBeforeUnmount(() => {
-  codeReader.reset()
+  if (codeReader) {
+    codeReader.reset()
+  }
 })
+
+function playBeep() {
+  const beep = new Audio('/sounds/beep.mp3')
+  beep.play()
+}
 </script>
 
 <style scoped>
-.video-container {
+.video-wrapper {
   position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 3 / 4;
+  border: 2px solid #999;
+  border-radius: 10px;
+  overflow: hidden;
 }
-.scanline {
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-line {
   position: absolute;
   top: 0;
   left: 0;
-  height: 2px;
   width: 100%;
-  background: red;
-  animation: scan 2s infinite;
+  height: 2px;
+  background-color: red;
+  animation: scanMove 2s infinite linear;
 }
-@keyframes scan {
+
+@keyframes scanMove {
   0% {
-    top: 0;
-  }
-  50% {
-    top: 95%;
+    top: 0%;
   }
   100% {
-    top: 0;
+    top: 100%;
   }
 }
 </style>
