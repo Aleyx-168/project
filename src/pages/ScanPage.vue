@@ -16,13 +16,11 @@ const route = useRoute()
 
 let codeReader = null
 
-// 播放扫码成功提示音
 function playBeep() {
   const audio = new Audio('/sounds/beep.mp3')
   audio.play().catch((e) => console.error('音效播放失败：', e))
 }
 
-// 启动扫码
 onMounted(async () => {
   codeReader = new BrowserMultiFormatReader()
 
@@ -32,7 +30,7 @@ onMounted(async () => {
     const rearCamera = videoDevices[videoDevices.length - 1]
 
     if (!rearCamera) {
-      alert('找不到摄像头设备')
+      alert('未找到后置摄像头')
       return
     }
 
@@ -42,23 +40,24 @@ onMounted(async () => {
         const code = result.getText()
         const mode = route.query.mode
 
+        console.log('扫码成功:', code)
+
         if (mode === 'in') {
           router.push({ name: 'InDetailPage', query: { code } })
         } else if (mode === 'out') {
           router.push({ name: 'OutDetailPage', query: { code } })
+        } else {
+          alert('未指定 mode 参数')
         }
 
         codeReader.reset()
       }
-
-      // 不再使用 error 变量，避免 ESLint 报错
     })
   } catch (err) {
-    console.error('摄像头初始化失败', err)
+    console.error('摄像头启动失败', err)
   }
 })
 
-// 页面卸载时停止扫码
 onUnmounted(() => {
   if (codeReader) {
     codeReader.reset()
