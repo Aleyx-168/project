@@ -1,69 +1,83 @@
 <template>
-  <q-page class="q-pa-none column items-center justify-center">
-    <div class="video-wrapper">
-      <video ref="videoRef" autoplay muted playsinline></video>
+  <div class="q-pa-md column items-center">
+    <div class="video-container">
+      <video ref="videoRef" class="video" autoplay muted playsinline></video>
       <div class="scan-line" />
     </div>
-    <div class="text-h6 q-mt-md">当前模式：{{ modeLabel }}</div>
-  </q-page>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
 import { BrowserMultiFormatReader } from '@zxing/browser'
-
-const route = useRoute()
-const mode = route.params.mode
-
-const modeLabel =
-  {
-    single: '入库',
-    bulk: '大量入库',
-    out: '出库',
-  }[mode] || '未知模式'
+import { useQuasar } from 'quasar'
+import { useRouter, useRoute } from 'vue-router'
 
 const videoRef = ref(null)
-let codeReader = null
+const codeReader = new BrowserMultiFormatReader()
+const $q = useQuasar()
+const router = useRouter()
+const route = useRoute()
 
-onMounted(() => {
-  codeReader = new BrowserMultiFormatReader()
+const beepSound = new Audio('/sounds/beep.mp3')
 
-  codeReader.decodeFromVideoDevice(null, videoRef.value, (result) => {
-    if (result) {
-      const code = result.getText()
-      console.log('扫码成功：', code)
+onMounted(async () => {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    const videoDevices = devices.filter((device) => device.kind === 'videoinput')
+    const rearCamera =
+      videoDevices.reverse().find((device) => device.label.toLowerCase().includes('back')) ||
+      videoDevices[0]
 
-      playBeep()
-      // TODO: 可根据 mode 做入库/出库操作
+    if (!rearCamera) {
+      $q.notify({ type: 'negative', message: '未找到摄像头设备' })
+      return
     }
-  })
-})
 
-onBeforeUnmount(() => {
-  if (codeReader) {
-    codeReader.reset()
+    // ✅ 实际调用扫码并使用所有变量
+    await codeReader.decodeFromVideoDevice(rearCamera.deviceId, videoRef.value, (result, err) => {
+      // 使用 err，避免 ESLint 报错
+      if (err) {
+        console.warn('扫码错误：', err.message || err)
+      }
+
+      if (result) {
+        const code = result.getText()
+        console.log('扫码成功：', code)
+
+        beepSound.play()
+
+        const mode = route.params.mode || 'default'
+        $q.notify({ type: 'positive', message: `扫码成功 (${mode})：${code}` })
+
+        // 扫完返回首页
+        setTimeout(() => {
+          router.push('/')
+        }, 1000)
+      }
+    })
+  } catch (err) {
+    console.error('扫码初始化失败：', err)
+    $q.notify({ type: 'negative', message: '扫码初始化失败' })
   }
 })
 
-function playBeep() {
-  const beep = new Audio('/sounds/beep.mp3')
-  beep.play()
-}
+onBeforeUnmount(() => {
+  codeReader.reset()
+})
 </script>
 
 <style scoped>
-.video-wrapper {
+.video-container {
   position: relative;
   width: 100%;
-  max-width: 400px;
-  aspect-ratio: 3 / 4;
-  border: 2px solid #999;
-  border-radius: 10px;
+  max-width: 500px;
+  aspect-ratio: 3/4;
+  border: 2px solid #00c853;
   overflow: hidden;
 }
 
-video {
+.video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -76,15 +90,19 @@ video {
   width: 100%;
   height: 2px;
   background-color: red;
-  animation: scanMove 2s infinite linear;
+  animation: scan 2s infinite;
+  z-index: 2;
 }
 
-@keyframes scanMove {
+@keyframes scan {
   0% {
     top: 0%;
   }
+  50% {
+    top: 95%;
+  }
   100% {
-    top: 100%;
+    top: 0%;
   }
 }
 </style>
