@@ -1,21 +1,18 @@
 const routes = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
+    component: () => import('layouts/MainLayout.vue'), // Quasar 默认布局
     children: [
-      { path: '', name: 'IndexPage', component: () => import('pages/IndexPage.vue') },
-      { path: 'scan', name: 'ScanPage', component: () => import('pages/ScanPage.vue') },
-      {
-        path: 'in-detail',
-        name: 'InDetailPage',
-        component: () => import('pages/InDetailPage.vue'),
-      },
-      {
-        path: 'out-detail',
-        name: 'OutDetailPage',
-        component: () => import('pages/OutDetailPage.vue'),
-      },
+      { path: '', component: () => import('pages/IndexPage.vue') },
+      { path: 'scan', component: () => import('pages/ScanPage.vue') },
+      { path: 'detail', component: () => import('pages/DetailPage.vue') },
     ],
+  },
+
+  // 404 页面
+  {
+    path: '/:catchAll(.*)*',
+    component: () => import('pages/ErrorNotFound.vue'),
   },
 ]
 

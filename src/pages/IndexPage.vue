@@ -1,8 +1,16 @@
 <template>
-  <q-page class="q-pa-md column q-gutter-md">
-    <q-btn label="单个入库" color="primary" @click="goScan('in')" />
-    <q-btn label="大数量入库" color="secondary" @click="goScan('in')" />
-    <q-btn label="出库" color="negative" @click="goScan('out')" />
+  <q-page class="q-pa-md bg-grey-2">
+    <div class="row q-col-gutter-md justify-center">
+      <q-btn
+        color="primary"
+        label="单个入库"
+        @click="goToScan('single')"
+        class="col-4"
+        unelevated
+      />
+      <q-btn color="orange" label="大数量入库" @click="goToScan('bulk')" class="col-4" unelevated />
+      <q-btn color="red" label="出库" @click="goToScan('out')" class="col-4" unelevated />
+    </div>
   </q-page>
 </template>
 
@@ -10,7 +18,7 @@
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
-function goScan(mode) {
-  router.push({ name: 'ScanPage', query: { mode } })
+function goToScan(mode) {
+  router.push({ path: '/scan', query: { mode } })
 }
 </script>

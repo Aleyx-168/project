@@ -1,12 +1,18 @@
 <template>
-  <q-page class="q-pa-none flex flex-center column">
-    <video ref="videoRef" style="width: 100%; height: auto" />
-    <div class="scan-line" />
+  <q-page class="column flex-center bg-grey-1">
+    <div class="q-mt-md text-h6 text-primary">请将条码对准扫描区域</div>
+
+    <div class="scanner-box q-mt-md">
+      <video ref="videoRef" autoplay muted playsinline class="video-cam"></video>
+      <div class="scan-line" />
+    </div>
+
+    <q-btn class="q-mt-lg" color="primary" label="返回首页" @click="goHome" />
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, ref, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 
@@ -14,73 +20,98 @@ const videoRef = ref(null)
 const router = useRouter()
 const route = useRoute()
 
-let codeReader = null
+const mode = route.query.mode || 'single'
+const codeReader = new BrowserMultiFormatReader()
+let selectedDeviceId = null
 
+// 播放提示音
 function playBeep() {
   const audio = new Audio('/sounds/beep.mp3')
-  audio.play().catch((e) => console.error('音效播放失败：', e))
+  audio.play().catch(() => {})
+}
+
+// 返回首页
+function goHome() {
+  stopScan()
+  router.push('/')
+}
+
+// 停止摄像头
+function stopScan() {
+  codeReader.reset()
 }
 
 onMounted(async () => {
-  codeReader = new BrowserMultiFormatReader()
-
   try {
     const devices = await navigator.mediaDevices.enumerateDevices()
-    const videoDevices = devices.filter((d) => d.kind === 'videoinput')
-    const rearCamera = videoDevices[videoDevices.length - 1]
+    const videoInputDevices = devices.filter((device) => device.kind === 'videoinput')
 
-    if (!rearCamera) {
-      alert('未找到后置摄像头')
-      return
-    }
+    const rearCamera =
+      videoInputDevices.find(
+        (d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear'),
+      ) || videoInputDevices[0]
 
-    codeReader.decodeFromVideoDevice(rearCamera.deviceId, videoRef.value, (result, error) => {
+    selectedDeviceId = rearCamera.deviceId
+
+    await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.value, (result) => {
       if (result) {
         playBeep()
-        const code = result.getText()
-        const mode = route.query.mode
+        stopScan()
 
-        console.log('扫码成功:', code)
+        const scannedCode = result.getText()
 
-        if (mode === 'in') {
-          router.push({ name: 'InDetailPage', query: { code } })
-        } else if (mode === 'out') {
-          router.push({ name: 'OutDetailPage', query: { code } })
-        } else {
-          alert('未指定 mode 参数')
-        }
-
-        codeReader.reset()
+        // 跳转到入库或出库页面，带上扫码结果
+        router.push({
+          path: '/detail',
+          query: {
+            code: scannedCode,
+            mode,
+          },
+        })
       }
     })
-  } catch (err) {
-    console.error('摄像头启动失败', err)
+  } catch {
+    alert('无法启动摄像头')
   }
 })
 
-onUnmounted(() => {
-  if (codeReader) {
-    codeReader.reset()
-  }
+onBeforeUnmount(() => {
+  stopScan()
 })
 </script>
 
-<style>
+<style scoped>
+.scanner-box {
+  position: relative;
+  width: 300px;
+  height: 220px;
+  border: 2px solid #0d47a1;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.video-cam {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .scan-line {
   position: absolute;
-  top: 20%;
-  width: 100%;
+  top: 0;
+  left: 0;
   height: 2px;
+  width: 100%;
   background: red;
-  animation: scan 2s infinite;
+  animation: scan-move 2s infinite;
 }
-
-@keyframes scan {
+@keyframes scan-move {
   0% {
-    top: 20%;
+    top: 0%;
+  }
+  50% {
+    top: 90%;
   }
   100% {
-    top: 80%;
+    top: 0%;
   }
 }
 </style>
